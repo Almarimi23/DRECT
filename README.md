@@ -9,7 +9,6 @@ The purpose of this project is twofold:
 
 2. DevRec: Apply a multi-objective search-based approach, named DevRec, to recommended the set of developers a given task on crowdsourcing software development(CSD).
 
-
 ## Running Experiment
 
 ## Stack
@@ -24,7 +23,7 @@ The order for running the code are as follows:
 1. [Data Collection](DataCollection/)
 2. Data Preparation
    - [Cosine_Similarity](Cosine_Similarity/)
-   - [Develooer Social Network](Develooer Social Network/)
+   - [Developer Social Network](Developer Social Network/)
 3. [Developer Recommendation](DevRec/)
 
 ## Note to rerun experiment
