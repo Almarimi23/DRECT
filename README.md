@@ -23,7 +23,7 @@ The order for running the code are as follows:
 1. [Data Collection](DataCollection/)
 2. Data Preparation
    - [Cosine_Similarity](Cosine_Similarity/)
-   - [Developer Social Network](Developer Social Network/)
+   - [Developer Social Network](social_network_analysis/)
 3. [Developer Recommendation](DevRec/)
 
 ## Note to rerun experiment
