@@ -24,7 +24,7 @@ The order for running the code are as follows:
 1. [Data Collection](DataCollection/)
 2. Data Preparation
    - [Cosine_Similarity](Cosine_Similarity/)
-   - [Develooer Social Network_Analysis](social_network_analysis/)
+   - [Develooer Social Network](Develooer Social Network/)
 3. [Developer Recommendation](DevRec/)
 
 ## Note to rerun experiment
