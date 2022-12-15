@@ -7,7 +7,7 @@ The purpose of this project is twofold:
 
 1. Data Collection: Collecting data from the crowdsourcing software development(CSD) i.e. topcoder and get features of tasks and devepoers.
 
-2. DevRec: Apply a multi-objective search-based approach, named DevRec, to recommended the set of developers a given task on crowdsourcing software development(CSD).
+2. DevRec: Apply a multi-objective search-based approach, named DevRec, to recommend the set of developers for a given task on crowdsourcing software development(CSD).
 
 ## Running Experiment
 
@@ -18,16 +18,34 @@ The purpose of this project is twofold:
 - Python 3.8.3
 - JavaScript 18.12.1
 
+</ul>
+<p><strong>Install python environment</strong></p>
+<p>We develop the tool using python, so we recommend you to install an VSCode 1.45.1 Python 3.8.3 environment at: https://code.visualstudio.com/
+</p>
 
-The order for running the code are as follows:
+<p><strong>Install JavaScript</strong></p>
+<p>
+We apply our script that implemented in JavaScript 18.12.1 to crawler data from topcoder project at: https://www.topcoder.com/.
+</p>
+
+#### Required python packages
+
+- Pymoo: Multi-objective optimization in python! at: [Pymoo](https://pymoo.org/) 
+- Data preprocessing: numpy, pandas, networkx.
+- Models: Algorithms required for the project NSGA2, NSGA3, UNSGA3, MOEAD, AGEMOEA.
+
+
+   
+#### The order for running the code are as follows:
 1. [Data Collection](DataCollection/)
 2. Data Preparation
    - [Cosine_Similarity](Cosine_Similarity/)
    - [Developer_Social_Network](Developer_Social_Network/)
 3. [Developer Recommendation](DevRec/)
 
+
 ## Note to rerun experiment
-- The "Dataset" directory is needed to be placed in the same directory as the project. The dataset is aviliable in this link Data : [The dataset and the experimental results](https://etsmtl365-my.sharepoint.com/:f:/g/personal/nuri_almarimi_1_ens_etsmtl_ca/EsKNnqfI4B5NhsmsFqyig5wBuNvOlpBicQaugDCT6f6A5w?e=0kA2dl).
+- The "Dataset" directory is needed to be placed in the same directory as the project. The script for data collection is aviliable here [Data Collection](DataCollection/). If you are eager to use our data,  The dataset is aviliable in this link Data : [The dataset and the experimental results](https://etsmtl365-my.sharepoint.com/:f:/g/personal/nuri_almarimi_1_ens_etsmtl_ca/EsKNnqfI4B5NhsmsFqyig5wBuNvOlpBicQaugDCT6f6A5w?e=0kA2dl).
 - Run the developer recommendation code by run the file DevRec.py.
 
 
