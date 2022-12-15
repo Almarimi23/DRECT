@@ -45,7 +45,7 @@ We apply our script that implemented in JavaScript 18.12.1 to crawler data from 
 
 
 ## Note to rerun experiment
-- The "Dataset" directory is needed to be placed in the same directory as the project. The script for data collection is aviliable here [Data Collection](DataCollection/). If you are eager to use our data,  The dataset is aviliable in this link Data : [The dataset and the experimental results](https://etsmtl365-my.sharepoint.com/:f:/g/personal/nuri_almarimi_1_ens_etsmtl_ca/EsKNnqfI4B5NhsmsFqyig5wBuNvOlpBicQaugDCT6f6A5w?e=0kA2dl).
+- The "Dataset" directory is needed to be placed in the same directory as the project. The script that used to collect the data is aviliable here [Data Collection](DataCollection/). If you are eager to use our data,  The dataset is aviliable in this link Data : [The dataset and the experimental results](https://etsmtl365-my.sharepoint.com/:f:/g/personal/nuri_almarimi_1_ens_etsmtl_ca/EsKNnqfI4B5NhsmsFqyig5wBuNvOlpBicQaugDCT6f6A5w?e=0kA2dl).
 - Run the developer recommendation code by run the file DevRec.py.
 
 
