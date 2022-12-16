@@ -32,10 +32,9 @@ We apply our script that implemented in JavaScript 18.12.1 to crawler data from 
 
 - Pymoo: Multi-objective optimization in python! at: [Pymoo](https://pymoo.org/) 
 - Data preprocessing: numpy, pandas, networkx.
-- Models: Algorithms required for the project NSGA2, NSGA3, UNSGA3, MOEAD, AGEMOEA.
+- Algorithms required for the project NSGA2, NSGA3, UNSGA3, MOEAD, AGEMOEA.
 
-
-   
+  
 #### The order for running the code are as follows:
 1. [Data Collection](DataCollection/)
 2. Data Preparation
@@ -47,7 +46,6 @@ We apply our script that implemented in JavaScript 18.12.1 to crawler data from 
 ## Note to rerun experiment
 - The "Dataset" directory is needed to be placed in the same directory as the project. The script that used to collect the data is aviliable here [Data Collection](DataCollection/). If you are eager to use our data,  The dataset is aviliable in this link Data : [The dataset and the experimental results](https://etsmtl365-my.sharepoint.com/:f:/g/personal/nuri_almarimi_1_ens_etsmtl_ca/EsKNnqfI4B5NhsmsFqyig5wBuNvOlpBicQaugDCT6f6A5w?e=0kA2dl).
 - Run the developer recommendation code by run the file DevRec.py.
-
 
 ## Support
 If you have any questions on this project or get stuck during code execution, feel free to create issue on this repository. We will be able to fix your issue.
