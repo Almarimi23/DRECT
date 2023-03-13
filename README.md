@@ -7,7 +7,7 @@
 ## Project Overview
 The purpose of this project is twofold:
 
-1. Data Collection: Collecting data from the crowdsourcing software development(CSD) i.e. topcoder and get features of tasks and devepoers.
+1. Data Collection: Collecting data from the crowdsourcing software development(CSD) i.e. topcoder and get features of tasks and develpoers.
 
 2. DRECT: Apply a multi-objective search-based approach, named DevRec, to recommend the set of developers for a given task on crowdsourcing software development(CSD).
 
