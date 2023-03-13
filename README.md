@@ -1,7 +1,7 @@
 # DRECT: An automatic approach for Developer REcommendation for Crowdsourcing software development Tasks.
 
 
-# A multi-objective search-based approach, named DRECT, to recommend the set of developers for a given task on crowdsourcing software development(CSD). 
+## A multi-objective search-based approach, named DRECT, to recommend the set of developers for a given task on crowdsourcing software development(CSD). 
 ## Project for the submitted paper for Empirical Software Engineering Journal.
 
 ## Project Overview
