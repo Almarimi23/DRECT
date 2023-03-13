@@ -42,7 +42,7 @@ We apply our script that implemented in JavaScript 18.12.1 to crawler data from 
 2. Data Preparation
    - [Cosine_Similarity](Cosine_Similarity/)
    - [Developer_Social_Network](Developer_Social_Network/)
-3. [Developer Recommendation](DevRec/)
+3. [Developer Recommendation](DRECT/)
 
 
 ## Note to rerun experiment
