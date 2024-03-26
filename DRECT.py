@@ -1,4 +1,7 @@
-import pandas as pd 
+
+!pip install pymoo==0.5.0
+
+import pandas as pd
 import os
 import numpy as np
 import itertools
@@ -29,30 +32,43 @@ import os
 import statistics
 from statistics import mean
 
+np.bool = np.bool_
 
-def f1(X,df):
+"""## Objective Fucntions"""
+
+def f1(X, df):
     de = []
     for i in range(len(df)):
-        
-        de.append(int(X[i])*(((((df['completedchallenges'][i] / df['totalChallengsJoined'][i])+( df['totalWins'][i] // df['completedchallenges'][i]))* df['Success_rate'][i])*((1 / df['task_recency (in days)'][i])* 100)) + df['CP_score'][i] ))
-    f1 = - (sum(de)/ len(de)) if len(de) > 0 else 0
-    return f1
+        de.append(int(X[i]) * (((df['completedchallenges'].iloc[i] / df['totalChallengsJoined'].iloc[i])
+                                + (df['totalWins'].iloc[i] // df['completedchallenges'].iloc[i]))
+                               * ((1 / df['task_recency (in days)'].iloc[i]) * 100)
+                               + df['CP_score'].iloc[i]))
 
+    f1_value = - (sum(de) / len(de)) if len(de) > 0 else 0
 
-def f2(X,df): 
+    if math.isinf(f1_value):
+        f1_value = 0
+
+    return f1_value
+def f2(X, df):
     sds = []
     for i in range(len(df)):
-        sds.append(int(X[i])*(df['Cosine_similarity_descriptions'][i] + df['Cosine_similarity_skills'][i] + df['Cosine_similarity_score_task_titles_current_past'][i] + df['Cosine_similarity_score_task_descriptions_current_past'][i] + df['Cosine_similarity_score_task_skills_current_past'][i]))
-    f2 = - (sum(sds) / len(sds)) if len(sds) > 0 else 0
-    return f2 
+        sds.append(int(X[i]) * (df['Cosine_similarity_descriptions'].iloc[i] +
+                                df['Cosine_similarity_skills'].iloc[i] +
+                                df['Cosine_similarity_score_task_titles_current_past'].iloc[i] +
+                                df['Cosine_similarity_score_task_descriptions_current_past'].iloc[i] +
+                                df['Cosine_similarity_score_task_skills_current_past'].iloc[i]))
 
-def f3(X,df):
+    f2_value = - (sum(sds) / len(sds)) if len(sds) > 0 else 0
+    return f2_value
+
+def f3(X, df):
     ad = []
     for i in range(len(df)):
-        ad.append(int(X[i])*(df['activechallenges'][i]))
+        ad.append(int(X[i]) * (df['activechallenges'].iloc[i]))
 
-    f3 = (sum(ad) / len(ad)) if len(ad) > 0 else 0
-    return f3 
+    f3_value = (sum(ad) / len(ad)) if len(ad) > 0 else 0
+    return f3_value
 
 class MyProblem(ElementwiseProblem):
 
@@ -66,7 +82,7 @@ class MyProblem(ElementwiseProblem):
                          n_obj=3,
                          n_constr=2,
                          sampling = get_sampling('real_random')
-                
+
                          )
 
 
@@ -83,21 +99,23 @@ class MyProblem(ElementwiseProblem):
         out["F"] = [obj1, obj2, obj3]
         out["G"] = [g1, g2]
 
+"""## Data PreProcessing"""
+
 all_data = pd.read_csv('Full_dataset_1.csv')
 
-all_data.columns
-
 all_data.dropna(inplace=True)
-all_data.sort_values("task_created_date", ascending=True, inplace=True)
+# all_data.sort_values("challengeId", ascending=True, inplace=True)
 
 all_data.columns
 
-pop_size = 20
-n_gen = 30
-minSize = 1 
+"""## NSGAII Setup"""
+
+pop_size = 30
+n_gen = 20
+minSize = 1
 maxSize = 600000
-obj_algo_name = 'NSGA2' 
-topK = 3
+obj_algo_name = 'NSGA2'
+topk = 10
 
 if obj_algo_name ==  'NSGA2':
     obj_algo = NSGA2
@@ -108,10 +126,6 @@ if obj_algo_name == 'UNSGA3':
 if obj_algo_name == 'AGEMOEA':
     obj_algo = AGEMOEA
 
-all_data.shape
-
-all_data['challengeId'].unique()
-
 # function to calculate pareto front using the f values
 def pareto_front(f_values):
   nondominated = []
@@ -120,14 +134,14 @@ def pareto_front(f_values):
     for f_val in f_values[(i+1):]:
       if f[0] <= f_val[0] and f[1] <= f_val[1] and f[2] <= f_val[2]:
         dominated = True
-        
+
     if dominated == False:
       nondominated.append(f)
   return nondominated
 
 # function to run the algo with dataset as input for any particular task/ cv set
 def run_algo(TASK_DF, verbose):
-    
+
     ref_dirs = get_reference_directions("das-dennis", 3, n_partitions=12) #12
     vectorized_problem = MyProblem(TASK_DF , minSize=minSize, maxSize=maxSize)
     algorithm = obj_algo(
@@ -137,7 +151,7 @@ def run_algo(TASK_DF, verbose):
                 crossover=get_crossover("bin_one_point"),
                 mutation=get_mutation("bin_bitflip", prob=1/vectorized_problem.n_var),
                 seed=1 # ?
-            ) 
+            )
 
     res = minimize(vectorized_problem,
                algorithm,
@@ -145,62 +159,183 @@ def run_algo(TASK_DF, verbose):
                verbose=verbose)
     return res
 
-# given res.X we get the number of occurances of each dev name in the solutions 
-# and get the member rank basis number of occurances
 def get_ranking(X_res, data):
-  columns = data['handle'].values.tolist()
-  results = pd.DataFrame(X_res, columns = columns)
-  df = results.sum(axis=0).reset_index()
-  df.columns = ["devname", "occurances"]
-  df['rank'] = df["occurances"].rank(method='min', ascending=False)
-  return df
+    """
+    Generate rankings based on the results from the recommendation system.
 
-# function to get the mean rank for most relevant members (identified during the
-# iterations with complete set) in ranking for each cv set
-def get_mean_rank(ranking_main, ranking_cv):
-  # identify developers given rank 1 during the iterations for the complete set 
-  # (only for those developers present in the particular cv set)
-  relevant = ranking_main.loc[ranking_main['rank']==1, 'devname'].values.tolist()
-  
-  avg_rank = []
-  for r in relevant:
-    rank = ranking_cv.loc[ranking_cv['devname']==r, "rank"]
-    rank = 1000 if rank.shape[0] == 0 else rank.iloc[0]
-    avg_rank.append(rank)
+    Parameters:
+    - X_res (array): Array containing recommendation scores for each developer.
+    - data (DataFrame): DataFrame containing developer information.
 
-  return np.mean(avg_rank)
+    Returns:
+    - DataFrame: DataFrame with rankings based on recommendation scores.
+    """
+    # Convert DataFrame columns to a list of developer handles
+    columns = data['handle'].values.tolist()
 
-def get_precisionk(ranking_main, ranking_cv, topk=5):
-  ranking_cv.sort_values(by="rank", ascending=True, inplace=True)
-  ranking_cv = ranking_cv.head(topk)
-  ranking_main = ranking_main.head(topk)
-  # number of relevant items among top k recommendations
-  numerator = ranking_cv.loc[ranking_cv['devname'].isin(ranking_main['devname'].values.tolist())].shape[0]
-  return numerator/max(len(ranking_cv), len(ranking_main)), ranking_main['devname'].unique(), ranking_cv['devname'].unique(), ranking_cv.loc[ranking_cv['devname'].isin(ranking_main['devname'].values.tolist()), 'devname'].unique()
+    # Create a DataFrame with recommendation scores and developer handles as columns
+    results = pd.DataFrame(X_res, columns=columns)
 
-def get_recallk(ranking_main, ranking_cv, topk=5):
-  ranking_cv.sort_values(by="rank", ascending=True, inplace=True)
-  ranking_cv = ranking_cv.head(topk)
-  ranking_main = ranking_main.head(topk)
-  # number of relevant items among top k recommendations
-  numerator = ranking_cv.loc[ranking_cv['devname'].isin(ranking_main['devname'].values.tolist())].shape[0]
-  denominator = ranking_cv['devname'].shape[0]
-  return 0 if denominator is 0 else numerator/denominator
+    # Sum the occurrence of recommendations for each developer
+    df = results.sum(axis=0).reset_index()
+    df.columns = ["devname", "occurances"]
 
-# using the rankings for main set and the cv set
-# (only for those developers present in the particular cv set)
+    # Calculate rank based on occurrences using the 'min' method
+    df['rank'] = df["occurances"].rank(method='min', ascending=False)
+
+    # Return the DataFrame with 'devname', 'occurrences', and 'rank' columns
+    return df
+
+def get_mrr(ranking_main, ranking_cv):
+    """
+    Calculate the Mean Reciprocal Rank (MRR) for a set of queries.
+
+    Args:
+    - ranking_main (DataFrame): DataFrame containing the main ranking data.
+    - ranking_cv (DataFrame): DataFrame containing the cross-validation ranking data.
+
+    Returns:
+    - float: Mean Reciprocal Rank (MRR) value.
+    """
+    # Initialize variables for MRR calculation
+    mrr_sum = 0
+    num_queries = min(len(ranking_main), len(ranking_cv))
+
+    # Iterate over each query in the rankings
+    for i in range(num_queries):
+        # Get relevant items from cross-validation ranking and ranked items from main ranking
+        relevant_items = set(ranking_cv.iloc[i]['devname'])
+        ranked_items = ranking_main.iloc[i]['devname']
+
+        # Initialize variables for reciprocal rank calculation
+        reciprocal_rank_sum = 0
+        found_relevant_item = False
+
+        # Iterate over each ranked item
+        for rank, item in enumerate(ranked_items, 1):
+            # Check if the item is relevant
+            if item in relevant_items:
+                # Calculate reciprocal rank and update sum
+                reciprocal_rank_sum += 1 / rank
+                found_relevant_item = True
+                break  # Stop after finding the first relevant item
+
+        # If no relevant item is found, add 0 to the sum
+        if not found_relevant_item:
+            reciprocal_rank_sum += 0
+
+        # Add reciprocal rank sum to MRR sum for this query
+        mrr_sum += reciprocal_rank_sum
+
+    # Calculate overall MRR as the average of MRRs for all queries with relevant items
+    mrr = mrr_sum / num_queries if num_queries > 0 else 0
+
+    return mrr
+
+def get_precisionk(ranking_main, ranking_cv, topk):
+    """
+    Calculate Precision@k for two rankings.
+
+    Args:
+    - ranking_main (DataFrame): DataFrame containing the main ranking data.
+    - ranking_cv (DataFrame): DataFrame containing the cross-validation ranking data.
+    - topk (int): Top-k value for precision calculation.
+
+    Returns:
+    - tuple: Precision@k value, recommended developers, actual developers, common developers.
+    """
+    # Sort the rankings by rank and select the top-k developers
+    ranking_main = ranking_main.sort_values(by="rank", ascending=True).head(topk)
+    ranking_cv = ranking_cv.sort_values(by="rank", ascending=True).head(topk)
+
+    # Find common developers in the top-k rankings
+    common_devs = ranking_main.merge(ranking_cv, on="devname", how="inner")
+
+    # Calculate the number of true positives (top-k developers recommended by the tool that correctly represent the actual developers)
+    true_positives = common_devs.shape[0]
+
+    # Calculate false positives (top-k developers recommended by the tool that do not represent the actual developers)
+    false_positive = topk - true_positives
+
+    # Calculate Precision@k using the formula (true_positives / (true_positives + false_positive))
+    precision = true_positives / (true_positives + false_positive) if (true_positives + false_positive) > 0 else 0
+
+    # Get lists of recommended, actual, and common developers
+    recommended = ranking_main['devname'].unique()
+    actual = ranking_cv['devname'].unique()
+    common = common_devs['devname'].unique()
+
+    # Round precision to two decimal places and return along with other results
+    return round(precision, 2), recommended, actual, common
+
+
+def get_recallk(ranking_main, ranking_cv, topk):
+    """
+    Calculate Recall@k for two rankings.
+
+    Args:
+    - ranking_main (DataFrame): DataFrame containing the main ranking data.
+    - ranking_cv (DataFrame): DataFrame containing the cross-validation ranking data.
+    - topk (int): Top-k value for recall calculation.
+
+    Returns:
+    - float: Recall@k value.
+    """
+    # Make copies of the input rankings to avoid modifying the original data
+    rm = ranking_main.copy()
+    rc = ranking_cv.copy()
+
+    # Sort the rankings by rank and select the top-k developers
+    ranking_main = ranking_main.sort_values(by="rank", ascending=True).head(topk)
+    ranking_cv = ranking_cv.sort_values(by="rank", ascending=True).head(topk)
+
+    # Find common developers in the top-k rankings
+    common_devs = ranking_main.merge(ranking_cv, on="devname", how="inner")
+
+    # Calculate the number of true positives (common developers in both rankings)
+    true_positives = common_devs.shape[0]
+
+    # Calculate false negatives (actual developers not represented in top-k actual developers)
+    false_negatives = len(rm[~rm['devname'].isin(common_devs['devname']) & ~rm['devname'].isin(rc['devname'])])
+
+    # Calculate Recall@k using the formula (true_positives / (true_positives + false_negatives))
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+
+    # Round recall to two decimal places and return
+    return round(recall, 2)
+
 def get_metrics(ranking_main, ranking_cv, topk):
-  # duplication was observed in devnames so occurances were added and rank was calculated using the sum
-  ranking_main = ranking_main.groupby("devname")['occurances'].sum().reset_index()
-  ranking_main.columns = ["devname", "occurances"]
-  ranking_main['rank'] = ranking_main["occurances"].rank(method='min', ascending=False)
-  ranking_cv = ranking_cv.groupby("devname")['occurances'].sum().reset_index()
-  ranking_cv.columns = ["devname", "occurances"]
-  ranking_cv['rank'] = ranking_cv["occurances"].rank(method='min', ascending=False)
-  mean_rank = get_mean_rank(ranking_main, ranking_cv)
-  precision, recommended, actual, common = get_precisionk(ranking_main, ranking_cv, topk)
-  recall = get_recallk(ranking_main, ranking_cv, topk)
-  return mean_rank, precision, recall , recommended, actual, common
+    """
+    Calculate multiple evaluation metrics based on two rankings.
+
+    Args:
+    - ranking_main (DataFrame): DataFrame containing the main ranking data.
+    - ranking_cv (DataFrame): DataFrame containing the cross-validation ranking data.
+    - topk (int): Top-k value for evaluation metrics.
+
+    Returns:
+    - tuple: Contains Mean Reciprocal Rank (MRR), Precision@k, Recall@k,
+             Recommended developers, Actual developers, and Common developers.
+    """
+
+    # Preprocess rankings to ensure they are in the desired format
+    ranking_main = ranking_main.groupby("devname")['occurances'].sum().reset_index()
+    ranking_main.columns = ["devname", "occurances"]
+    ranking_main['rank'] = ranking_main["occurances"].rank(method='min', ascending=False)
+
+    ranking_cv = ranking_cv.groupby("devname")['occurances'].sum().reset_index()
+    ranking_cv.columns = ["devname", "occurances"]
+    ranking_cv['rank'] = ranking_cv["occurances"].rank(method='min', ascending=False)
+
+    # Calculate Mean Reciprocal Rank (MRR) using the get_mrr function
+    mrr = get_mrr(ranking_main, ranking_cv)
+
+    # Calculate Precision@k, Recall@k, and get lists of recommended, actual, and common developers
+    precision, recommended, actual, common = get_precisionk(ranking_main, ranking_cv, topk)
+    recall = get_recallk(ranking_main, ranking_cv, topk)
+
+    # Return a tuple containing all calculated metrics and lists
+    return mrr, precision, recall, recommended, actual, common
 
 def plot_scatter_plot(pareto, f_values, ref_points):
   fig = plt.figure()
@@ -212,7 +347,7 @@ def plot_scatter_plot(pareto, f_values, ref_points):
   # defined by x in [23, 32], y in [0, 100], z in [zlow, zhigh].
   for m, pts in [('o', pareto), ('^', f_values)]:
       ax.scatter(pts[:, 0], pts[:, 1], pts[:, 2], marker=m)
-  
+
   ax.scatter(ref_points[0], ref_points[1], ref_points[2])
 
   ax.set_xlabel('X Label')
@@ -220,70 +355,251 @@ def plot_scatter_plot(pareto, f_values, ref_points):
   ax.set_zlabel('Z Label')
   plt.legend(["pareto_front", "F values", "Ref Point"])
 
-  #plt.show()
+  plt.show()
 
-metrics = []
-last_x_tasks = 10
-unique_task_ids = all_data['challengeId'].unique()
+from sklearn.model_selection import KFold
 
-for k, STUDIED_TASK in enumerate(unique_task_ids[1:]):
-    try:
-      if k >= last_x_tasks:
-        TASK_DF = all_data[all_data['challengeId'].isin(unique_task_ids[max(0, k-last_x_tasks+1):k+1])]
-        unique_devs = TASK_DF['handle'].unique()
-        # take means for devs whose name occurs more than once in the set
-        TASK_DF = TASK_DF.groupby('handle').mean().reset_index()
+df = all_data.copy()
+# Convert 'task_created_date' to datetime
+all_data['task_created_date'] = pd.to_datetime(all_data['task_created_date'])
 
-        DF = all_data[all_data['challengeId'] ==  STUDIED_TASK].reset_index(drop=True)
-        DF = DF[DF['handle'].isin(unique_devs)].reset_index(drop=True)
-        unique_handles = DF['handle'].unique()
+# Identify unique tasks and their associated developers
+task_developer_mapping = all_data.groupby('challengeId')['handle'].unique().to_dict()
 
-        result_prev = run_algo(TASK_DF, False)
-        pf = pareto_front(result_prev.F)
-        pf = [list(x) for x in pf]
-        ranking_previous_task = get_ranking(result_prev.X, TASK_DF)
+n_folds = 10
 
-        # if DF.shape[0]==0:
-        #   print("\nNo Actual developer found (from the list of developers in the previous tasks)\n")
-        DF = DF.groupby('handle').mean().reset_index()
+# Create a KFold object with 10 folds
+kf = KFold(n_splits=n_folds, shuffle=False, random_state=None)
 
-        all_ones= [1 for i in range(len(DF))]
-        result = run_algo(DF, False)
+# save the folds to a list
+folds = []
 
-        gd = get_performance_indicator("gd", pf=np.array(pf))
-        igd = get_performance_indicator("igd", pf=np.array(pf))
-        hv = get_performance_indicator("hv", ref_point=np.array([0, 0, f3(all_ones,DF)]))
+# Iterate over the folds for training and testing
+for train_index, test_index in kf.split(task_developer_mapping):
+    # Save the train and test indices to the list
+    folds.append((train_index, test_index))
 
-        metrics.append({"GD": gd.do(result.F), "IGD": igd.do(result.F), "HV": hv.do(result.F)})
-        ranking_current_task = get_ranking(result.X, DF)
-        mean_rank, precision, recall, recommended, actual, common = get_metrics(ranking_previous_task, ranking_current_task, topK)
+# Initialize an empty list to store performance metrics for each iteration
+performance_metrics = []
+iteration = 1
+# Iterate over the folds for training and testing
+for i in range(n_folds//2,n_folds):
 
-        if DF.shape[0]> 0 and precision > 0.25:
-           print("\nRecommended Solutions")
-           print(result_prev.X.astype(int))
+    train_index = np.concatenate([fold[0] for fold in folds[0:i]])
+    test_index = folds[i][1]
 
-           print("\nFitness values")
-           print(result_prev.F)
+    # Use the next fold for testing
+    test_tasks = dict(list(task_developer_mapping.items())[j] for j in test_index)
 
-           print("\nActual Solutions")
-           print(result.X.astype(int))
+    # Use the previous folds for training
+    train_tasks = dict(list(task_developer_mapping.items())[j] for j in train_index)
 
-           print("\nFitness values")
-           print(result.F)
+    # Filter DataFrame based on selected tasks for training
+    train_data = pd.concat([df[df['challengeId'] == task_id].sort_values(by='task_created_date') for task_id in train_tasks.keys()])
 
-           print("Metrics")
-           print("Recommended Developers: ", recommended)
-           print("Actual Developers: ", actual)
-           print("Common Developers: ", common)
-           print({"GD": gd.do(result.F), "IGD": igd.do(result.F), "HV": hv.do(result.F), "MRR": 1/mean_rank, "Precision@k": precision, "Recall@k": recall})
-           print()
-           plot_scatter_plot(np.array(pf), result.F, np.array([0, 0, f3(all_ones,DF)]))
-           metrics.append({"GD": gd.do(result.F), "IGD": igd.do(result.F), "HV": hv.do(result.F), "MRR": 1/mean_rank, "Precision@k": precision, "Recall@k": recall})
-    except Exception as ex:
-         #print("Exception {}".format(ex))
-      continue
-        
-metrics = pd.DataFrame(metrics)
-metrics.to_csv("metrics_results_5.csv", index=False)
-print(metrics.mean())
+    # Train the model on the training data
+    res_train = run_algo(train_data, verbose=True)
 
+    # Get the recommended developers for the tasks in the trained set
+    recommended_devs_train = get_ranking(res_train.X, train_data)
+
+    # Filter DataFrame based on selected tasks for testing
+    test_data = pd.concat([df[df['challengeId'] == task_id].sort_values(by='task_created_date') for task_id in test_tasks.keys()])
+
+    # Test the model on the testing data
+    res_test = run_algo(test_data, verbose=True)
+
+    # Get the recommended developers for the tasks in the testing set
+    recommended_devs_test = get_ranking(res_test.X, test_data)
+
+    # Calculate the performance metrics
+    mrr, precision, recall, recommended, actual, common = get_metrics(recommended_devs_train, recommended_devs_test, topk)
+
+    # get the pareto front
+    pareto = pareto_front(res_train.F)
+
+
+    pareto = [list(i) for i in pareto]
+
+    all_ones = [1 for i in range(len(test_data))]
+
+    # get gd, igd, hv
+    gd = get_performance_indicator("gd", pf=np.array(pareto))
+    igd = get_performance_indicator("igd", pf=np.array(pareto))
+    hv = get_performance_indicator("hv", ref_point=np.array([0, 0, f3(all_ones, test_data)]))
+
+    print("Iteration: ", iteration)
+    print("train_folds: ",str(0),"-",str(len(folds[0:i])-1))
+    print("test_index: ", i)
+    # print("recommended Solutions:", res_train.X.astype(int))
+    # print("fitness values: ", res_train.F)
+    # print("Actual Solutions:", res_test.X.astype(int))
+    # print("fitness values: ", res_test.F)
+    print("MRR: ", mrr)
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    print("Recommended: ", recommended)
+    print("Actual: ", actual)
+    print("Common: ", common)
+    print("GD: ", gd.do(res_test.F))
+    print("IGD: ", igd.do(res_test.F))
+    print("HV: ", hv.do(res_test.F))
+    print("")
+    # plot_scatter_plot(np.array(pareto), res_test.F, [0, 0, f3(all_ones, test_data)])
+
+    performance_metrics.append({
+        "Iteration":iteration,
+        "Train_Folds":str(0)+"-"+str(len(folds[0:i])-1),
+        "Test_Fold": i,
+        "MRR": mrr,
+        "Actual": actual,
+        "Recommended": recommended,
+        "Common": common,
+        "gd": gd.do(res_test.F),
+        "igd": igd.do(res_test.F),
+        "hv": hv.do(res_test.F),
+        "precision": precision,
+        "recall": recall})
+
+    iteration +=1
+
+# After the loop, you can analyze the overall performance using the collected metrics
+performance_metrics_df = pd.DataFrame(performance_metrics)
+
+performance_metrics_df
+
+# save the performance metrics to a csv file
+performance_metrics_df.to_csv('performance_metrics_v1.csv', index=False)
+
+"""- For each in performance metrics get Metric,Mean,Median,Mode and getting into df and csv"""
+
+# read the performance metrics from the csv file
+pm_df = pd.read_csv('performance_metrics_v1.csv')
+
+def calculate_stats(df, column_name):
+    mean = df[column_name].mean()
+    median = df[column_name].median()
+    mode = df[column_name].mode().iloc[0]  # Take the first mode if it exists
+
+    return mean, median, mode
+
+# Example usage:
+pm_df = pd.read_csv('performance_metrics_v1.csv')
+
+# Metrics to calculate stats for
+metrics = ['gd', 'igd', 'hv', 'MRR', 'precision', 'recall']
+
+# Create a list to store the results
+result_list = []
+
+# Calculate stats for each metric and add to the list
+for metric in metrics:
+    mean, median, mode = calculate_stats(pm_df, metric)
+    result_list.append({'Metric': metric, 'Mean': mean, 'Median': median, 'Mode': mode})
+
+# Convert the list to a DataFrame
+result_df = pd.DataFrame(result_list, columns=['Metric', 'Mean', 'Median', 'Mode'])
+
+# Display the result DataFrame
+print(result_df)
+
+# save the result to a csv file
+result_df.to_csv('metrics_stats_v1.csv', index=False)
+
+"""- For specific task id
+    - Taskid will be used as text index at each iteration
+    - kindly replace challengeid with the specific id that you want to test for
+"""
+
+# Initialize an empty list to store performance metrics for each iteration
+challenge_metrics = []
+
+challenge_id = "00a217cd-a4ba-4b2b-9788-0c602aa303f3"
+
+# get the task data from challenge id
+test_data = all_data[all_data['challengeId'] == challenge_id]
+# convert task to a dataframe
+test_data = pd.DataFrame(test_data)
+
+iteration = 1
+
+# Iterate over the folds for training and testing
+for i in range(5,10):
+
+    train_index = np.concatenate([fold[0] for fold in folds[0:i]])
+
+    # Split tasks into train and test sets
+    train_tasks = dict(list(task_developer_mapping.items())[j] for j in train_index)
+
+    # Filter DataFrame based on selected tasks for training
+    train_data = pd.concat([df[df['challengeId'] == task_id].sort_values(by='task_created_date') for task_id in train_tasks.keys()])
+
+    # Train the model on the training data
+    res_train = run_algo(train_data, verbose=True)
+
+    # Get the recommended developers for the tasks in the trained set
+    recommended_devs_train = get_ranking(res_train.X, train_data)
+
+    # Test the model on the testing data
+    res_test = run_algo(test_data, verbose=True)
+
+    # Get the recommended developers for the tasks in the testing set
+    recommended_devs_test = get_ranking(res_test.X, test_data)
+
+    # Calculate the performance metrics
+    mrr, precision, recall, recommended, actual, common = get_metrics(recommended_devs_train, recommended_devs_test, topk)
+
+    # get the pareto front
+    pareto = pareto_front(res_train.F)
+
+    pareto = [list(i) for i in pareto]
+
+    all_ones = [1 for i in range(len(test_data))]
+
+    # get gd, igd, hv
+    gd = get_performance_indicator("gd", pf=np.array(pareto))
+    igd = get_performance_indicator("igd", pf=np.array(pareto))
+    hv = get_performance_indicator("hv", ref_point=np.array([0, 0, f3(all_ones, test_data)]))
+
+    print("Iteration: ", iteration)
+    print("train_folds: ",str(0),"-",str(len(folds[0:i])-1))
+    print("test_index: ", i)
+    # print("recommended Solutions:", res_train.X.astype(int))
+    # print("fitness values: ", res_train.F)
+    # print("Actual Solutions:", res_test.X.astype(int))
+    # print("fitness values: ", res_test.F)
+    print("MRR: ", mrr)
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    print("Recommended: ", recommended)
+    print("Actual: ", actual)
+    print("Common: ", common)
+    print("GD: ", gd.do(res_test.F))
+    print("IGD: ", igd.do(res_test.F))
+    print("HV: ", hv.do(res_test.F))
+    print("")
+    # plot_scatter_plot(np.array(pareto), res_test.F, [0, 0, f3(all_ones, test_data)])
+
+    challenge_metrics.append({
+        "ChallengeID":challenge_id,
+        "Iteration":iteration,
+        "Train_Folds":str(0)+"-"+str(len(folds[0:i])-1),
+        "Test_Fold": i,
+        "MRR": mrr,
+        "Actual": actual,
+        "Recommended": recommended,
+        "Common": common,
+        "gd": gd.do(res_test.F),
+        "igd": igd.do(res_test.F),
+        "hv": hv.do(res_test.F),
+        "precision": precision,
+        "recall": recall})
+
+    iteration +=1
+
+# After the loop, you can analyze the overall performance using the collected metrics
+challenge_metrics_df = pd.DataFrame(challenge_metrics)
+
+challenge_metrics_df
+
+challenge_metrics_df.to_csv('challenge_metrics_v1.csv', index=False)
