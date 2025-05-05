@@ -34,7 +34,7 @@ We apply our script that implemented in JavaScript 18.12.1 to crawler data from 
 
 - Pymoo: Multi-objective optimization in python! at: [Pymoo](https://pymoo.org/) 
 - Data preprocessing: numpy, pandas, networkx.
-- Algorithms required for the project NSGA2, NSGA3, UNSGA3, MOEAD, AGEMOEA.
+- Algorithms required for the project NSGA2, NSGA3, UNSGA3, AGEMOEA, SPEA2, and Random Search (RS).
 
   
 #### The order for running the code are as follows:
