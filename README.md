@@ -46,7 +46,7 @@ We apply our script that implemented in JavaScript 18.12.1 to crawler data from 
 
 
 ## Note to rerun experiment
-- The "Dataset" directory is needed to be placed in the same directory as the project. The script that used to collect the data is aviliable here [Data Collection](DataCollection/). If you are eager to use our data, contact us here or via email.
+- The "Dataset" directory is needed to be placed in the same directory as the project. The script that used to collect the data is aviliable here [Data Collection](DataCollection/). If you are eager to use our data, contact us here or you will find it here [Dataset](https://drive.google.com/drive/folders/1HHdW7Z53QbaOT9cx1PvC3eDprvg-U8B_) .
 - Run the developer recommendation code by run the file DRECT.py.
 
 ## Support
